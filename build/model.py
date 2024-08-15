@@ -17,6 +17,10 @@ from torch.nn import functional as F
 
 from build.utils import find_multiple, get_precision
 
+from custom_linear import myLinear
+
+from my_timer import mytimer
+
 config_path = Path(f"{str(Path(__file__).parent)}/known_model_params")
 
 
@@ -152,7 +156,7 @@ class Transformer(nn.Module):
             TransformerBlock(config) for _ in range(config.n_layers)
         )
         self.norm = RMSNorm(config.dim, eps=config.norm_eps)
-        self.output = nn.Linear(config.dim, config.vocab_size, bias=False)
+        self.output = myLinear(config.dim, config.vocab_size, bias=False)
 
         # self.freqs_cis: Optional[Tensor] = None
         # self.mask_cache: Optional[Tensor] = None
@@ -243,16 +247,16 @@ class Attention(nn.Module):
 
         # key, query, value projections for all heads, but in a batch
         # total_head_dim = (config.n_heads + 2 * config.n_local_heads) * config.head_dim
-        # self.wqkv = nn.Linear(config.dim, total_head_dim, bias=False)
-        self.wq = nn.Linear(config.dim, config.n_heads * config.head_dim, bias=False)
-        self.wk = nn.Linear(
+        # self.wqkv = myLinear(config.dim, total_head_dim, bias=False)
+        self.wq = myLinear(config.dim, config.n_heads * config.head_dim, bias=False)
+        self.wk = myLinear(
             config.dim, config.n_local_heads * config.head_dim, bias=False
         )
-        self.wv = nn.Linear(
+        self.wv = myLinear(
             config.dim, config.n_local_heads * config.head_dim, bias=False
         )
 
-        self.wo = nn.Linear(config.dim, config.dim, bias=False)
+        self.wo = myLinear(config.dim, config.dim, bias=False)
         self.kv_cache = None
 
         self.n_heads = config.n_heads
@@ -308,12 +312,15 @@ class Attention(nn.Module):
     ) -> Tensor:
         bsz, seqlen, _ = x.shape
 
+        #print("############before attention")
         q = self.wq(x)
         k = self.wk(x)
         v = self.wv(x)
         # kv_size = self.n_local_heads * self.head_dim
         # q, k, v = self.wqkv(x).split([self.dim, kv_size, kv_size], dim=-1)
 
+        trans_start = mytimer.record()
+        
         q = q.view(bsz, seqlen, self.n_heads, self.head_dim)
         k = k.view(bsz, seqlen, self.n_local_heads, self.head_dim)
         v = v.view(bsz, seqlen, self.n_local_heads, self.head_dim)
@@ -328,20 +335,28 @@ class Attention(nn.Module):
 
         k = k.repeat_interleave(self.n_heads // self.n_local_heads, dim=1)
         v = v.repeat_interleave(self.n_heads // self.n_local_heads, dim=1)
+        #print("before scale dot")
+        start_t = mytimer.record()
         y = F.scaled_dot_product_attention(q, k, v, attn_mask=mask, dropout_p=0.0)
+        end_t = mytimer.record()
+        mytimer.sdpa_time += (end_t - start_t)
+        #print("after scale dot")
 
         y = y.transpose(1, 2).contiguous().view(bsz, seqlen, self.dim)
 
+        trans_end = mytimer.record()
+        mytimer.trans_time += (trans_end - trans_start)
         y = self.wo(y)
+        #print("############after attention")
         return y
 
 
 class FeedForward(nn.Module):
     def __init__(self, config: ModelArgs) -> None:
         super().__init__()
-        self.w1 = nn.Linear(config.dim, config.hidden_dim, bias=False)
-        self.w2 = nn.Linear(config.hidden_dim, config.dim, bias=False)
-        self.w3 = nn.Linear(config.dim, config.hidden_dim, bias=False)
+        self.w1 = myLinear(config.dim, config.hidden_dim, bias=False)
+        self.w2 = myLinear(config.hidden_dim, config.dim, bias=False)
+        self.w3 = myLinear(config.dim, config.hidden_dim, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(F.silu(self.w1(x)) * self.w3(x))

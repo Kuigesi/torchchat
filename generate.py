@@ -28,6 +28,8 @@ from build.utils import device_sync, set_precision
 from cli import add_arguments_for_verb, arg_init, check_args
 from utils.device_info import get_device_info
 
+from my_timer import mytimer
+
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>", "<</SYS>>"
 
@@ -828,6 +830,8 @@ class Generator:
             f"Average tokens/sec: {torch.mean(torch.tensor(aggregate_metrics['tokens_per_sec'])).item():.2f}"
         )
         print(f"Memory used: {torch.cuda.max_memory_reserved() / 1e9:.02f} GB")
+
+        print(f"all: {mytimer.all_time} , kernel: {mytimer.kernel_time}, timer: {mytimer.timer_time}, linear: {mytimer.linear_time}, sdpa: {mytimer.sdpa_time}, trans: {mytimer.trans_time}")
 
 
 def main(args):
