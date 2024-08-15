@@ -58,12 +58,13 @@ NIGHTLY_VERSION=dev20240728
 # The pip repository that hosts nightly torch packages. cpu by default.
 # If cuda is available, based on presence of nvidia-smi, install the pytorch nightly
 # with cuda for faster execution on cuda GPUs.
-if [[ -x "$(command -v nvidia-smi)" ]];
-then
-  TORCH_NIGHTLY_URL="https://download.pytorch.org/whl/nightly/cu121"
-else
-  TORCH_NIGHTLY_URL="https://download.pytorch.org/whl/nightly/cpu"
-fi
+#if [[ -x "$(command -v nvidia-smi)" ]];
+#then
+#  TORCH_NIGHTLY_URL="https://download.pytorch.org/whl/nightly/cu121"
+#else
+#  TORCH_NIGHTLY_URL="https://download.pytorch.org/whl/nightly/cpu"
+#fi
+TORCH_NIGHTLY_URL="https://download.pytorch.org/whl/nightly/cpu"
 
 # pip packages needed by exir.
 REQUIREMENTS_TO_INSTALL=(
@@ -84,9 +85,9 @@ REQUIREMENTS_TO_INSTALL=(
   set -x
   $PIP_EXECUTABLE install git+https://github.com/pytorch/ao.git@d477c0e59b458b5617dcb3e999290a87df3070d8
 )
-if [[ -x "$(command -v nvidia-smi)" ]]; then
-  (
-    set -x
-    $PYTHON_EXECUTABLE scripts/patch_triton.py
-  )
-fi
+#if [[ -x "$(command -v nvidia-smi)" ]]; then
+#  (
+#    set -x
+#    $PYTHON_EXECUTABLE scripts/patch_triton.py
+#  )
+#fi
