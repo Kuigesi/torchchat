@@ -49,11 +49,11 @@ fi
 # package versions.
 NIGHTLY_VERSION=dev20240728
 
-# Uninstall triton, as nightly will depend on pytorch-triton, which is one and the same
-(
-  set -x
-  $PIP_EXECUTABLE uninstall -y triton
-)
+## Uninstall triton, as nightly will depend on pytorch-triton, which is one and the same
+#(
+#  set -x
+#  $PIP_EXECUTABLE uninstall -y triton
+#)
 
 # The pip repository that hosts nightly torch packages. cpu by default.
 # If cuda is available, based on presence of nvidia-smi, install the pytorch nightly
