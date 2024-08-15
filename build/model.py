@@ -18,6 +18,8 @@ from torch.nn import functional as F
 
 from build.utils import find_multiple, get_precision
 
+from custom_linear import myLinear
+
 config_path = Path(f"{str(Path(__file__).parent)}/known_model_params")
 
 
@@ -154,7 +156,7 @@ class Transformer(nn.Module):
             TransformerBlock(config) for _ in range(config.n_layers)
         )
         self.norm = RMSNorm(config.dim, eps=config.norm_eps)
-        self.output = nn.Linear(config.dim, config.vocab_size, bias=False)
+        self.output = myLinear(config.dim, config.vocab_size, bias=False)
 
         # self.freqs_cis: Optional[Tensor] = None
         # self.mask_cache: Optional[Tensor] = None
@@ -246,16 +248,16 @@ class Attention(nn.Module):
 
         # key, query, value projections for all heads, but in a batch
         # total_head_dim = (config.n_heads + 2 * config.n_local_heads) * config.head_dim
-        # self.wqkv = nn.Linear(config.dim, total_head_dim, bias=False)
-        self.wq = nn.Linear(config.dim, config.n_heads * config.head_dim, bias=False)
-        self.wk = nn.Linear(
+        # self.wqkv = myLinear(config.dim, total_head_dim, bias=False)
+        self.wq = myLinear(config.dim, config.n_heads * config.head_dim, bias=False)
+        self.wk = myLinear(
             config.dim, config.n_local_heads * config.head_dim, bias=False
         )
-        self.wv = nn.Linear(
+        self.wv = myLinear(
             config.dim, config.n_local_heads * config.head_dim, bias=False
         )
 
-        self.wo = nn.Linear(config.dim, config.dim, bias=False)
+        self.wo = myLinear(config.dim, config.dim, bias=False)
         self.kv_cache = None
 
         self.n_heads = config.n_heads
@@ -342,9 +344,9 @@ class Attention(nn.Module):
 class FeedForward(nn.Module):
     def __init__(self, config: TransformerArgs) -> None:
         super().__init__()
-        self.w1 = nn.Linear(config.dim, config.hidden_dim, bias=False)
-        self.w2 = nn.Linear(config.hidden_dim, config.dim, bias=False)
-        self.w3 = nn.Linear(config.dim, config.hidden_dim, bias=False)
+        self.w1 = myLinear(config.dim, config.hidden_dim, bias=False)
+        self.w2 = myLinear(config.hidden_dim, config.dim, bias=False)
+        self.w3 = myLinear(config.dim, config.hidden_dim, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(F.silu(self.w1(x)) * self.w3(x))
